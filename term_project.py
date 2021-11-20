@@ -13,7 +13,8 @@ carsOnScreen = 0
 ##no overlapping of cars
 roadOnScreen = False
 riverOnScreen = False
-player1 = None
+player1 = None ##character selection
+counter = 0
 
 clock = pygame.time.Clock()
 
@@ -52,37 +53,64 @@ def draw_text(surf,text,size,x,y):
     surf.blit(text_surface,text_rect)
 
 def menuScreen():
+    text = ""
+    font = pygame.font.Font(None, 30)
     while True:
         screen.fill((65,156,3))
         screen.blit(menuScreenImg,(-10, 50))
-        draw_text(screen, "Click grey button to start", 18, SCREEN_WIDTH//2, 400)
+        draw_text(screen, "Type START to start", 18, SCREEN_WIDTH//2, 400)
         draw_text(screen, "Press ESC to quit", 18, SCREEN_WIDTH//2, 420)
         draw_text(screen, "Press i for game instructions", 18, SCREEN_WIDTH//2, 440)
         
         startButton = pygame.Rect(SCREEN_WIDTH//2,400,100,50)
         startButton.midtop = (SCREEN_WIDTH//2,500)
         
-        input_rect = pygame.Rect(SCREEN_WIDTH//2,550,100,50)
+        input_rect = pygame.Rect(SCREEN_WIDTH//2,550,150,50)
+        input_rect.midtop = (SCREEN_WIDTH//2,600)
         color_active = pygame.Color("grey")
-        color_passive = pygame.Color("black")
+        color_inactive = pygame.Color("black")
+        color = color_inactive
         
         active = False
         
-        mx,my = pygame.mouse.get_pos()
+        done = False
         
-        pygame.draw.rect(screen,(128,128,128), startButton)
-        for event in pygame.event.get():
-            if event.type == KEYDOWN:
-                if event.key == K_ESCAPE:
-                    running = False
-                    pygame.quit()
-                    quit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if startButton.collidepoint(event.pos):
-                    click = True
-                    gameScreen()
+        while not done:
+            mx,my = pygame.mouse.get_pos()
+            
+            pygame.draw.rect(screen,(128,128,128), startButton)
+            for event in pygame.event.get():
+                
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if input_rect.collidepoint(event.pos):
+                        active = True
+                    else:
+                        active = False
+                if active == True:
+                    color = color_active
+                else:
+                    color = color_inactive
                     
-        pygame.display.update()
+                if event.type == KEYDOWN:
+                    if event.key == K_ESCAPE:
+                        running = False
+                        pygame.quit()
+                        quit()
+                    if event.key == pygame.K_RETURN:
+                        if text == "START" or text == "start":
+                            gameScreen()
+                        text = ''
+                    elif event.key == pygame.K_BACKSPACE:
+                        text = text[:-1]
+                    else:
+                        text += event.unicode
+                        
+            txt_surface = font.render(text, True, color)
+            screen.blit(txt_surface, (input_rect.x+5,input_rect.y+5))
+            pygame.draw.rect(screen,color, input_rect,2)
+            
+                        
+            pygame.display.update()
 
 def gameOverScreen():
     while True:
@@ -194,7 +222,7 @@ class Dog(pygame.sprite.Sprite):
     
     def __init__(self):
         global scrollY
-        super(Duck,self).__init__()
+        super(Dog,self).__init__()
         self.playerIMG = [] #duck sprite facing up
         self.playerIMGRight = [] #duck sprite facing right
         self.playerIMGLeft = []
@@ -304,6 +332,7 @@ class Road(pygame.sprite.Sprite):
     def update(self,pressed_keys):
         global scrollY
         global roadOnScreen
+        global counter
         if pressed_keys[K_UP]:
             #scrollY += 20
             self.rect = self.image.get_rect(
@@ -311,7 +340,8 @@ class Road(pygame.sprite.Sprite):
         if self.rect.top >= SCREEN_HEIGHT:
             self.kill()
             roadOnScreen = False
-            
+            counter -= 1
+    
 class cars(pygame.sprite.Sprite):
     
     def __init__(self):
@@ -363,11 +393,13 @@ class River(pygame.sprite.Sprite):
         
     def update(self,pressed_keys):
         global scrollY
+        global counter
         if pressed_keys[K_UP]:
             self.rect = self.image.get_rect(
             topleft=(0,self.y+scrollY))
         if self.rect.top >= SCREEN_HEIGHT:
             self.kill()
+            counter -= 1
 
 class Bridge(pygame.sprite.Sprite):
     
@@ -393,7 +425,7 @@ class Tracks(pygame.sprite.Sprite):
     def __init__(self,y):
         pass
             
-player1 = Duck()
+player1 = Dog()
 all_sprites = pygame.sprite.Group()
 all_obstacles = pygame.sprite.Group()
 all_bridges = pygame.sprite.Group()
@@ -405,7 +437,7 @@ listOfObstacles = ["car","train","river"]
 obstaclesOnScreen = []
 
 def gameScreen():
-    counter = 1
+    global counter
     while True:
         global score
         global carsOnScreen
@@ -419,7 +451,7 @@ def gameScreen():
         listOfTimes = [500,1000]
         listOfDrawing = ["river","road"]
         timer = random.choice(listOfTimes)
-        if numberOfSteps%10 == 0:
+        if numberOfSteps%10 == 0 and counter <= 1:
                 toDraw = random.choice(listOfDrawing)
                 if toDraw == "road":
                         roadOnScreen = True
@@ -436,6 +468,7 @@ def gameScreen():
                         new_bridge = Bridge(bridgeY-scrollY-25)
                         all_bridges.add(new_bridge)
                         riverOnScreen = True
+                        counter += 1
                         
 
         die = True
@@ -492,6 +525,7 @@ def gameScreen():
         pygame.display.flip()
         
         clock.tick(15) ##fps
+        print(counter)
             
 menuScreen()
 
