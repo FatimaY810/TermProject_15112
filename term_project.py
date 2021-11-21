@@ -1,7 +1,7 @@
 import pygame
 import random
 ### future implements:
-# character selection
+# character selection (DONE)
 # multiplayer (WASD)
 
 score = 0
@@ -13,8 +13,10 @@ carsOnScreen = 0
 ##no overlapping of cars
 roadOnScreen = False
 riverOnScreen = False
-player1 = None ##character selection
 counter = 0
+duck = False
+dog = False
+player1 = None
 
 clock = pygame.time.Clock()
 
@@ -35,6 +37,7 @@ from pygame.locals import(
     K_LEFT,
     K_RIGHT,
     K_ESCAPE,
+    K_BACKSPACE,
     KEYDOWN,
     QUIT,
 )
@@ -44,6 +47,7 @@ click = False
 running = True
 
 menuScreenImg = pygame.image.load("MenuScreen.png")
+characterSelectImg = pygame.image.load("characterSelection.png")
 
 def draw_text(surf,text,size,x,y):
     font = pygame.font.Font(font1, size)
@@ -58,7 +62,7 @@ def menuScreen():
     while True:
         screen.fill((65,156,3))
         screen.blit(menuScreenImg,(-10, 50))
-        draw_text(screen, "Type START to start", 18, SCREEN_WIDTH//2, 400)
+        draw_text(screen, "Type START to go to character selection", 18, SCREEN_WIDTH//2, 400)
         draw_text(screen, "Press ESC to quit", 18, SCREEN_WIDTH//2, 420)
         draw_text(screen, "Press i for game instructions", 18, SCREEN_WIDTH//2, 440)
         
@@ -98,7 +102,7 @@ def menuScreen():
                         quit()
                     if event.key == pygame.K_RETURN:
                         if text == "START" or text == "start":
-                            gameScreen()
+                            characterSelection()
                         text = ''
                     elif event.key == pygame.K_BACKSPACE:
                         text = text[:-1]
@@ -111,21 +115,27 @@ def menuScreen():
             
                         
             pygame.display.update()
-
+            
+        
 def gameOverScreen():
     while True:
         pass
+
+
 
 class Duck(pygame.sprite.Sprite):
     
     def __init__(self):
         global scrollY
         super(Duck,self).__init__()
-        self.playerIMG = [] #duck sprite facing up
-        self.playerIMGRight = [] #duck sprite facing right
+        self.playerIMG = []
+        #duck sprite facing up
+        self.playerIMGRight = []
+        #duck sprite facing right
         self.playerIMGLeft = []
         self.walk1 = pygame.image.load("DuckWalk1.png").convert()
-        self.walk1.set_colorkey((0, 0, 0), RLEACCEL) ##render each image to get rid of the black background
+        self.walk1.set_colorkey((0, 0, 0), RLEACCEL)
+        ##render each image to get rid of the black background
         self.playerIMG.append(self.walk1)
         self.walk2 = pygame.image.load("DuckWalk2.png").convert()
         self.walk2.set_colorkey((0, 0, 0), RLEACCEL)
@@ -223,11 +233,14 @@ class Dog(pygame.sprite.Sprite):
     def __init__(self):
         global scrollY
         super(Dog,self).__init__()
-        self.playerIMG = [] #duck sprite facing up
-        self.playerIMGRight = [] #duck sprite facing right
+        self.playerIMG = []
+        #duck sprite facing up
+        self.playerIMGRight = []
+        #duck sprite facing right
         self.playerIMGLeft = []
         self.walk1 = pygame.image.load("dogFront1.png").convert()
-        self.walk1.set_colorkey((0, 0, 0), RLEACCEL) ##render each image to get rid of the black background
+        self.walk1.set_colorkey((0, 0, 0), RLEACCEL)
+        ##render each image to get rid of the black background
         self.playerIMG.append(self.walk1)
         self.walk2 = pygame.image.load("dogFront2.png").convert()
         self.walk2.set_colorkey((0, 0, 0), RLEACCEL)
@@ -317,9 +330,41 @@ class Dog(pygame.sprite.Sprite):
         if self.rect.bottom >= SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
 
+def characterSelection():
+    global duck
+    global dog
+    duckImage = pygame.image.load("DuckSprite copy.png").convert()
+    duckImage.set_colorkey((0, 0, 0), RLEACCEL)
+    duckrect = duckImage.get_rect(midtop=(SCREEN_WIDTH//3, SCREEN_HEIGHT//2))
+    
+    dogImage = pygame.image.load("DogSprite copy.png").convert()
+    dogImage.set_colorkey((0, 0, 0), RLEACCEL)
+    dogrect = dogImage.get_rect(midtop=(2*SCREEN_WIDTH//3, SCREEN_HEIGHT//2))
 
+    while True:
+        
+        for event in pygame.event.get():
+            
+            if event.type == pygame.MOUSEBUTTONDOWN:
+            
+                if duckrect.collidepoint(event.pos):
+                    duck = True
+                    god = False
+                    playerSelection()
+                
+                elif dogrect.collidepoint(event.pos):
+                    duck = False
+                    dog = True
+                    playerSelection()
+                    
+        screen.fill((65,156,3))
+        screen.blit(characterSelectImg,(0, 50))  
+        screen.blit(duckImage,(SCREEN_WIDTH//3-35, SCREEN_HEIGHT//2))
+        screen.blit(dogImage,(2*SCREEN_WIDTH//3-35, SCREEN_HEIGHT//2))
+        pygame.display.update()
 
 ##OBSTACLES##
+
 class Road(pygame.sprite.Sprite):
     
     def __init__(self,y):
@@ -344,7 +389,7 @@ class Road(pygame.sprite.Sprite):
     
 class cars(pygame.sprite.Sprite):
     
-    def __init__(self):
+    def __init__(self,y):
         global scrollY
         super(cars,self).__init__()
         self.listOfCars = ["brown","blue","yellow"]
@@ -359,7 +404,7 @@ class cars(pygame.sprite.Sprite):
             self.image = pygame.image.load("yellowCar.png").convert()
             self.image.set_colorkey((0, 0, 0), RLEACCEL)
         self.x = random.randint(SCREEN_WIDTH + 20, SCREEN_WIDTH + 100)
-        self.y = 60
+        self.y = y
         self.rect = self.image.get_rect(topleft=(self.x,self.y+scrollY))
         self.speed = random.randint(5,20)
         
@@ -424,20 +469,35 @@ class Tracks(pygame.sprite.Sprite):
     
     def __init__(self,y):
         pass
-            
-player1 = Dog()
+    
+def playerSelection():
+    global duck
+    global dog
+    global player1
+    
+    if duck == True:
+        player1 = Duck() ##character selection
+        all_sprites.add(player1)
+        gameScreen()
+        
+    elif dog == True:
+        player1 = Dog()
+        all_sprites.add(player1)
+        gameScreen()
+ 
 all_sprites = pygame.sprite.Group()
 all_obstacles = pygame.sprite.Group()
 all_bridges = pygame.sprite.Group()
-all_sprites.add(player1)
 score = 0
 background = pygame.sprite.Group()
 numberOfSteps = 0
 listOfObstacles = ["car","train","river"]
 obstaclesOnScreen = []
 
+
 def gameScreen():
     global counter
+    carOnRoadList = []
     while True:
         global score
         global carsOnScreen
@@ -449,9 +509,9 @@ def gameScreen():
         ADDCAR = pygame.USEREVENT + 1
         ADDRIVER = pygame.USEREVENT + 2
         listOfTimes = [500,1000]
-        listOfDrawing = ["river","road"]
+        listOfDrawing = ["road","river"]
         timer = random.choice(listOfTimes)
-        if numberOfSteps%10 == 0 and counter <= 1:
+        if numberOfSteps%10 == 0 and counter == 0:
                 toDraw = random.choice(listOfDrawing)
                 if toDraw == "road":
                         roadOnScreen = True
@@ -462,7 +522,7 @@ def gameScreen():
                         all_sprites.add(road)
                         counter += 1
                 if toDraw == "river":
-                        bridgeY = random.randint(100,200)
+                        bridgeY = random.randrange(-50,300)
                         new_river = River(bridgeY-scrollY)
                         all_obstacles.add(new_river)
                         new_bridge = Bridge(bridgeY-scrollY-25)
@@ -482,7 +542,7 @@ def gameScreen():
                     score += 1
                     numberOfSteps += 1
             if event.type == ADDCAR and carsOnScreen == 0 and roadOnScreen == True:
-                new_car = cars()
+                new_car = cars(60)
                 all_obstacles.add(new_car)
                 carsOnScreen += 1
                                
@@ -503,11 +563,12 @@ def gameScreen():
             screen.blit(obstacle.image, obstacle.rect)
         for bridges in all_bridges:
             screen.blit(bridges.image, bridges.rect)
-        
+
         
         if riverOnScreen == True:
             screen.blit(new_river.image, new_river.rect)
             screen.blit(new_bridge.image, new_bridge.rect)
+        
             
         screen.blit(player1.image, player1.rect)
         
@@ -524,7 +585,7 @@ def gameScreen():
         
         pygame.display.flip()
         
-        clock.tick(15) ##fps
+        clock.tick(10) ##fps
         print(counter)
             
 menuScreen()
