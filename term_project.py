@@ -1,7 +1,6 @@
 import pygame
 import random
 ### future implements:
-# character selection (DONE)
 # multiplayer (WASD)
 
 score = 0
@@ -17,6 +16,7 @@ counter = 0
 duck = False
 dog = False
 player1 = None
+carOnRoadList = []
 
 clock = pygame.time.Clock()
 
@@ -185,6 +185,7 @@ class Duck(pygame.sprite.Sprite):
         
     def update(self,pressed_keys):
         global scrollY
+        global score
         ##moving the sprite
         if pressed_keys[K_UP]:
             scrollY += 15
@@ -196,6 +197,7 @@ class Duck(pygame.sprite.Sprite):
             if self.indexUp >=5:
                 self.indexUp = 0
                 self.image = self.playerIMG[self.indexUp]
+            score += 1 
         if pressed_keys[K_LEFT]:
             self.indexLeft += 1
             self.indexRight = 0
@@ -287,8 +289,11 @@ class Dog(pygame.sprite.Sprite):
         
     def update(self,pressed_keys):
         global scrollY
+        global score
         ##moving the sprite
         if pressed_keys[K_UP]:
+            if isinstance(player1, Dog):
+                score += 1
             scrollY += 15
             self.indexRight = 0
             self.indexLeft = 0
@@ -366,6 +371,7 @@ def characterSelection():
 ##OBSTACLES##
 
 class Road(pygame.sprite.Sprite):
+    global carOnRoadList
     
     def __init__(self,y):
         super(Road,self).__init__()
@@ -412,7 +418,6 @@ class cars(pygame.sprite.Sprite):
         global scrollY
         global roadOnScreen
         if pressed_keys[K_UP]:
-            #scrollY += 10
             currentX = self.rect.x
             self.rect = self.image.get_rect(
             topleft=(currentX,self.y+scrollY))
@@ -423,7 +428,7 @@ class cars(pygame.sprite.Sprite):
             carsOnScreen -= 1
         if self.rect.bottom >= SCREEN_HEIGHT:
             self.kill()
-            roadOnScreen = False
+            carsOnScreen -= 1
 
 class River(pygame.sprite.Sprite):
     
@@ -456,14 +461,21 @@ class Bridge(pygame.sprite.Sprite):
         self.image = pygame.image.load("bridge.png").convert()
         self.image.set_colorkey((0, 0, 0), RLEACCEL)
         self.rect = self.image.get_rect(midtop=(self.x,self.y+scrollY))
+        self.speed = random.randrange(5,10)
     
     def update(self,pressed_keys):
         global scrollY
         if pressed_keys[K_UP]:
+            currentX = self.rect.x
             self.rect = self.image.get_rect(
-            midtop=(self.x,self.y+scrollY))
+            topleft=(currentX,self.y+scrollY))
         if self.rect.top >= SCREEN_HEIGHT:
             self.kill()
+        self.rect.move_ip(-self.speed, 0)
+        if self.rect.right<90:
+            self.speed *= -1
+        if self.rect.left>SCREEN_WIDTH-90:
+            self.speed *= -1
             
 class Tracks(pygame.sprite.Sprite):
     
@@ -493,11 +505,14 @@ background = pygame.sprite.Group()
 numberOfSteps = 0
 listOfObstacles = ["car","train","river"]
 obstaclesOnScreen = []
+onBridge = False
 
 
 def gameScreen():
     global counter
-    carOnRoadList = []
+    global carOnRoadList
+    global onBridge
+    eventList = []
     while True:
         global score
         global carsOnScreen
@@ -511,18 +526,21 @@ def gameScreen():
         listOfTimes = [500,1000]
         listOfDrawing = ["road","river"]
         timer = random.choice(listOfTimes)
-        if numberOfSteps%10 == 0 and counter == 0:
+        yofRoad = 0
+        if numberOfSteps%5 == 0 and counter == 0:
                 toDraw = random.choice(listOfDrawing)
                 if toDraw == "road":
+                        counter += 1
                         roadOnScreen = True
                         listOfTimes = [500,1000]
                         timer = random.choice(listOfTimes)
-                        pygame.time.set_timer(ADDCAR, timer)
+                        roadY = 50-scrollY
                         road = Road(50-scrollY)
+                        eventList.append(counter)
+                        pygame.time.set_timer(ADDCAR, timer)
                         all_sprites.add(road)
-                        counter += 1
                 if toDraw == "river":
-                        bridgeY = random.randrange(-50,300)
+                        bridgeY = random.randrange(-100,-75)
                         new_river = River(bridgeY-scrollY)
                         all_obstacles.add(new_river)
                         new_bridge = Bridge(bridgeY-scrollY-25)
@@ -539,10 +557,12 @@ def gameScreen():
                     pygame.quit()
                     quit()
                 if event.key == K_UP:
-                    score += 1
                     numberOfSteps += 1
-            if event.type == ADDCAR and carsOnScreen == 0 and roadOnScreen == True:
-                new_car = cars(60)
+            print("cars:", carsOnScreen)
+            print("road:", roadOnScreen)
+            if event.type == ADDCAR and carsOnScreen == 0:
+                new_car = cars(roadY+20)
+                print(roadY+20)
                 all_obstacles.add(new_car)
                 carsOnScreen += 1
                                
@@ -572,10 +592,11 @@ def gameScreen():
             
         screen.blit(player1.image, player1.rect)
         
-        draw_text(screen, str(score), 18, SCREEN_WIDTH/6, 10)
+        draw_text(screen, str(score//2), 18, SCREEN_WIDTH/6, 10)
         
         if pygame.sprite.spritecollideany(player1, all_bridges):
             die = False
+            onBridge = True
         
         if pygame.sprite.spritecollideany(player1, all_obstacles) and die == True:
             player1.kill()
@@ -586,8 +607,8 @@ def gameScreen():
         pygame.display.flip()
         
         clock.tick(10) ##fps
-        print(counter)
-            
+
+
 menuScreen()
 
 
